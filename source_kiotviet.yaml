@@ -1,65 +1,185 @@
-spec:
-  type: Spec
-  connection_specification:
-    type: object
-    $schema: http://json-schema.org/draft-07/schema#
-    required:
-      - start_date
-      - client_id
-      - client_secret
-      - retailer
-    properties:
-      retailer:
-        type: string
-        order: 3
-        title: Retailer
-        airbyte_secret: true
-      client_id:
-        type: string
-        order: 1
-        title: Client ID
-        airbyte_secret: true
-      start_date:
-        type: string
-        order: 0
-        title: Start date
-        format: date-time
-        pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
-      client_secret:
-        type: string
-        order: 2
-        title: Client secret
-        airbyte_secret: true
-    additionalProperties: true
+version: 0.73.0
 type: DeclarativeSource
 check:
   type: CheckStream
   stream_names:
     - invoices
 streams:
-  - name: invoices
-    type: DeclarativeStream
+  - type: DeclarativeStream
+    name: invoices
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        $schema: http://json-schema.org/schema#
+        properties:
+          branchId:
+            type:
+              - number
+              - 'null'
+          branchName:
+            type:
+              - string
+              - 'null'
+          code:
+            type:
+              - string
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          customerCode:
+            type:
+              - string
+              - 'null'
+          customerId:
+            type:
+              - number
+              - 'null'
+          customerName:
+            type:
+              - string
+              - 'null'
+          description:
+            type:
+              - string
+              - 'null'
+          discount:
+            type:
+              - number
+              - 'null'
+          discountRatio:
+            type:
+              - number
+              - 'null'
+          id:
+            type: number
+          invoiceDetails:
+            items:
+              properties:
+                categoryId:
+                  type:
+                    - number
+                    - 'null'
+                categoryName:
+                  type:
+                    - string
+                    - 'null'
+                discount:
+                  type:
+                    - number
+                    - 'null'
+                discountRatio:
+                  type:
+                    - number
+                    - 'null'
+                price:
+                  type:
+                    - number
+                    - 'null'
+                productCode:
+                  type:
+                    - string
+                    - 'null'
+                productId:
+                  type:
+                    - number
+                    - 'null'
+                productName:
+                  type:
+                    - string
+                    - 'null'
+                quantity:
+                  type:
+                    - number
+                    - 'null'
+                returnQuantity:
+                  type:
+                    - number
+                    - 'null'
+                serialNumbers:
+                  type:
+                    - string
+                    - 'null'
+                subTotal:
+                  type:
+                    - number
+                    - 'null'
+                tradeMarkId:
+                  type:
+                    - number
+                    - 'null'
+                tradeMarkName:
+                  type:
+                    - string
+                    - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
+          modifiedDate:
+            type: string
+          orderCode:
+            type:
+              - string
+              - 'null'
+          purchaseDate:
+            type:
+              - string
+              - 'null'
+          soldById:
+            type:
+              - number
+              - 'null'
+          soldByName:
+            type:
+              - string
+              - 'null'
+          status:
+            type:
+              - number
+              - 'null'
+          statusValue:
+            type:
+              - string
+              - 'null'
+          total:
+            type:
+              - number
+              - 'null'
+          totalPayment:
+            type:
+              - number
+              - 'null'
+          usingCod:
+            type:
+              - boolean
+              - 'null'
+          uuid:
+            type:
+              - string
+              - 'null'
+        required:
+          - id
+          - modifiedDate
+        type: object
     retriever:
       type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
       requester:
-        path: invoices
         type: HttpRequester
         url_base: https://public.kiotapi.com/
+        path: invoices
         http_method: GET
+        request_parameters:
+          SaleChannel: 'true'
+          includePayment: 'true'
+          includeInvoiceDelivery: 'true'
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
         authenticator:
           type: OAuthAuthenticator
           scopes:
@@ -85,180 +205,28 @@ streams:
                   predicate: '{{ ''Too much requests'' in response }}'
                   http_codes:
                     - 429
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
         request_body_json: {}
-        request_parameters:
-          SaleChannel: 'true'
-          includePayment: 'true'
-          includeInvoiceDelivery: 'true'
       record_selector:
         type: RecordSelector
         extractor:
           type: DpathExtractor
           field_path:
             - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
       partition_router: []
-    primary_key:
-      - id
-    schema_loader:
-      type: InlineSchemaLoader
-      schema:
-        type: object
-        $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - modifiedDate
-        properties:
-          id:
-            type: number
-          code:
-            type:
-              - string
-              - 'null'
-          uuid:
-            type:
-              - string
-              - 'null'
-          total:
-            type:
-              - number
-              - 'null'
-          status:
-            type:
-              - number
-              - 'null'
-          branchId:
-            type:
-              - number
-              - 'null'
-          discount:
-            type:
-              - number
-              - 'null'
-          soldById:
-            type:
-              - number
-              - 'null'
-          usingCod:
-            type:
-              - boolean
-              - 'null'
-          orderCode:
-            type:
-              - string
-              - 'null'
-          branchName:
-            type:
-              - string
-              - 'null'
-          customerId:
-            type:
-              - number
-              - 'null'
-          soldByName:
-            type:
-              - string
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          description:
-            type:
-              - string
-              - 'null'
-          statusValue:
-            type:
-              - string
-              - 'null'
-          customerCode:
-            type:
-              - string
-              - 'null'
-          customerName:
-            type:
-              - string
-              - 'null'
-          modifiedDate:
-            type: string
-          purchaseDate:
-            type:
-              - string
-              - 'null'
-          totalPayment:
-            type:
-              - number
-              - 'null'
-          discountRatio:
-            type:
-              - number
-              - 'null'
-          invoiceDetails:
-            type:
-              - array
-              - 'null'
-            items:
-              type:
-                - object
-                - 'null'
-              properties:
-                price:
-                  type:
-                    - number
-                    - 'null'
-                discount:
-                  type:
-                    - number
-                    - 'null'
-                quantity:
-                  type:
-                    - number
-                    - 'null'
-                subTotal:
-                  type:
-                    - number
-                    - 'null'
-                productId:
-                  type:
-                    - number
-                    - 'null'
-                categoryId:
-                  type:
-                    - number
-                    - 'null'
-                productCode:
-                  type:
-                    - string
-                    - 'null'
-                productName:
-                  type:
-                    - string
-                    - 'null'
-                tradeMarkId:
-                  type:
-                    - number
-                    - 'null'
-                categoryName:
-                  type:
-                    - string
-                    - 'null'
-                discountRatio:
-                  type:
-                    - number
-                    - 'null'
-                serialNumbers:
-                  type:
-                    - string
-                    - 'null'
-                tradeMarkName:
-                  type:
-                    - string
-                    - 'null'
-                returnQuantity:
-                  type:
-                    - number
-                    - 'null'
     transformations:
       - type: AddFields
         fields:
@@ -268,223 +236,44 @@ streams:
               {{record['modifiedDate'] if record['modifiedDate'] else
               record['createdDate']}}
     incremental_sync:
-      step: P1D
       type: DatetimeBasedCursor
       cursor_field: modifiedDate
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      lookback_window: P1D
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
       start_datetime:
         type: MinMaxDatetime
         datetime: '{{ config[''start_date''] }}'
         datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
-      end_time_option:
-        type: RequestOption
-        field_name: toDate
-        inject_into: request_parameter
-      lookback_window: P1D
       start_time_option:
         type: RequestOption
         field_name: lastModifiedFrom
         inject_into: request_parameter
+      end_time_option:
+        type: RequestOption
+        field_name: toDate
+        inject_into: request_parameter
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      step: P1D
       cursor_granularity: PT1H
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M:%S.%f0'
-  - name: orders
-    type: DeclarativeStream
-    retriever:
-      type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
-      requester:
-        path: orders
-        type: HttpRequester
-        url_base: https://public.kiotapi.com/
-        http_method: GET
-        authenticator:
-          type: OAuthAuthenticator
-          scopes:
-            - PublicApi.Access
-          client_id: '{{ config[''client_id''] }}'
-          grant_type: client_credentials
-          client_secret: '{{ config[''client_secret''] }}'
-          refresh_request_body:
-            scope: PublicApi.Access
-            grant_type: client_credentials
-          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
-        error_handler:
-          type: CompositeErrorHandler
-          error_handlers:
-            - type: DefaultErrorHandler
-              response_filters:
-                - type: HttpResponseFilter
-                  action: RETRY
-                  http_codes:
-                    - 429
-              backoff_strategies:
-                - type: ExponentialBackoffStrategy
-                  factor: 6
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
-        request_body_json: {}
-        request_parameters:
-          SaleChannel: 'true'
-          includePayment: 'true'
-          includeInvoiceDelivery: 'true'
-      record_selector:
-        type: RecordSelector
-        extractor:
-          type: DpathExtractor
-          field_path:
-            - data
-      partition_router: []
+  - type: DeclarativeStream
+    name: orders
     primary_key:
       - id
     schema_loader:
       type: InlineSchemaLoader
       schema:
-        type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - modifiedDate
         properties:
-          id:
-            type: number
-          code:
-            type:
-              - string
-              - 'null'
           Extra:
             type:
               - string
               - 'null'
-          total:
-            type:
-              - number
-              - 'null'
-          status:
-            type:
-              - number
-              - 'null'
-          branchId:
-            type:
-              - number
-              - 'null'
-          discount:
-            type:
-              - number
-              - 'null'
-          soldById:
-            type:
-              - number
-              - 'null'
-          usingCod:
-            type:
-              - boolean
-              - 'null'
-          branchName:
-            type:
-              - string
-              - 'null'
-          customerId:
-            type:
-              - number
-              - 'null'
-          retailerId:
-            type:
-              - number
-              - 'null'
-          soldByName:
-            type:
-              - string
-              - 'null'
           PriceBookId:
-            type:
-              - number
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          description:
-            type:
-              - string
-              - 'null'
-          statusValue:
-            type:
-              - string
-              - 'null'
-          customerCode:
-            type:
-              - string
-              - 'null'
-          customerName:
-            type:
-              - string
-              - 'null'
-          modifiedDate:
-            type: string
-          orderDetails:
-            type:
-              - array
-              - 'null'
-            items:
-              type:
-                - object
-                - 'null'
-              properties:
-                price:
-                  type:
-                    - number
-                    - 'null'
-                discount:
-                  type:
-                    - number
-                    - 'null'
-                quantity:
-                  type:
-                    - number
-                    - 'null'
-                productId:
-                  type:
-                    - number
-                    - 'null'
-                productCode:
-                  type:
-                    - string
-                    - 'null'
-                productName:
-                  type:
-                    - string
-                    - 'null'
-                viewDiscount:
-                  type:
-                    - number
-                    - 'null'
-                discountRatio:
-                  type:
-                    - number
-                    - 'null'
-          purchaseDate:
-            type:
-              - string
-              - 'null'
-          totalPayment:
             type:
               - number
               - 'null'
@@ -496,59 +285,140 @@ streams:
             type:
               - string
               - 'null'
-    transformations:
-      - type: AddFields
-        fields:
-          - path:
-              - modifiedDate
-            value: >-
-              {{record['modifiedDate'] if record['modifiedDate'] else
-              record['createdDate']}}
-    incremental_sync:
-      type: DatetimeBasedCursor
-      cursor_field: modifiedDate
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      start_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ config[''start_date''] }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
-      end_time_option:
-        type: RequestOption
-        field_name: toDate
-        inject_into: request_parameter
-      lookback_window: P1D
-      start_time_option:
-        type: RequestOption
-        field_name: lastModifiedFrom
-        inject_into: request_parameter
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M:%S.%f0'
-  - name: customers
-    type: DeclarativeStream
+          branchId:
+            type:
+              - number
+              - 'null'
+          branchName:
+            type:
+              - string
+              - 'null'
+          code:
+            type:
+              - string
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          customerCode:
+            type:
+              - string
+              - 'null'
+          customerId:
+            type:
+              - number
+              - 'null'
+          customerName:
+            type:
+              - string
+              - 'null'
+          description:
+            type:
+              - string
+              - 'null'
+          discount:
+            type:
+              - number
+              - 'null'
+          id:
+            type: number
+          modifiedDate:
+            type: string
+          orderDetails:
+            items:
+              properties:
+                discount:
+                  type:
+                    - number
+                    - 'null'
+                discountRatio:
+                  type:
+                    - number
+                    - 'null'
+                price:
+                  type:
+                    - number
+                    - 'null'
+                productCode:
+                  type:
+                    - string
+                    - 'null'
+                productId:
+                  type:
+                    - number
+                    - 'null'
+                productName:
+                  type:
+                    - string
+                    - 'null'
+                quantity:
+                  type:
+                    - number
+                    - 'null'
+                viewDiscount:
+                  type:
+                    - number
+                    - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
+          purchaseDate:
+            type:
+              - string
+              - 'null'
+          retailerId:
+            type:
+              - number
+              - 'null'
+          soldById:
+            type:
+              - number
+              - 'null'
+          soldByName:
+            type:
+              - string
+              - 'null'
+          status:
+            type:
+              - number
+              - 'null'
+          statusValue:
+            type:
+              - string
+              - 'null'
+          total:
+            type:
+              - number
+              - 'null'
+          totalPayment:
+            type:
+              - number
+              - 'null'
+          usingCod:
+            type:
+              - boolean
+              - 'null'
+        required:
+          - id
+          - modifiedDate
+        type: object
     retriever:
       type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
       requester:
-        path: customers
         type: HttpRequester
         url_base: https://public.kiotapi.com/
+        path: orders
         http_method: GET
+        request_parameters:
+          SaleChannel: 'true'
+          includePayment: 'true'
+          includeInvoiceDelivery: 'true'
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
         authenticator:
           type: OAuthAuthenticator
           scopes:
@@ -564,50 +434,105 @@ streams:
           type: CompositeErrorHandler
           error_handlers:
             - type: DefaultErrorHandler
+              backoff_strategies:
+                - type: ExponentialBackoffStrategy
+                  factor: 6
               response_filters:
                 - type: HttpResponseFilter
                   action: RETRY
                   http_codes:
                     - 429
-              backoff_strategies:
-                - type: ExponentialBackoffStrategy
-                  factor: 6
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
         request_body_json: {}
-        request_parameters: {}
       record_selector:
         type: RecordSelector
         extractor:
           type: DpathExtractor
           field_path:
             - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
       partition_router: []
+    transformations:
+      - type: AddFields
+        fields:
+          - path:
+              - modifiedDate
+            value: >-
+              {{record['modifiedDate'] if record['modifiedDate'] else
+              record['createdDate']}}
+    incremental_sync:
+      type: DatetimeBasedCursor
+      cursor_field: modifiedDate
+      lookback_window: P1D
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ config[''start_date''] }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      start_time_option:
+        type: RequestOption
+        field_name: lastModifiedFrom
+        inject_into: request_parameter
+      end_time_option:
+        type: RequestOption
+        field_name: toDate
+        inject_into: request_parameter
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+  - type: DeclarativeStream
+    name: customers
     primary_key:
       - id
     schema_loader:
       type: InlineSchemaLoader
       schema:
-        type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
         properties:
-          id:
-            type: number
+          address:
+            type:
+              - string
+              - 'null'
+          birthDate:
+            type:
+              - string
+              - 'null'
+          branchId:
+            type:
+              - number
+              - 'null'
           code:
             type:
               - string
               - 'null'
-          debt:
-            type:
-              - number
-              - 'null'
-          name:
+          comments:
             type:
               - string
               - 'null'
-          type:
+          contactNumber:
+            type:
+              - string
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          debt:
             type:
               - number
               - 'null'
@@ -619,42 +544,8 @@ streams:
             type:
               - boolean
               - 'null'
-          address:
-            type:
-              - string
-              - 'null'
-          taxCode:
-            type:
-              - string
-              - 'null'
-          branchId:
-            type:
-              - number
-              - 'null'
-          comments:
-            type:
-              - string
-              - 'null'
-          wardName:
-            type:
-              - string
-              - 'null'
-          birthDate:
-            type:
-              - string
-              - 'null'
-          retailerId:
-            type:
-              - number
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          rewardPoint:
-            type:
-              - number
-              - 'null'
+          id:
+            type: number
           locationName:
             type:
               - string
@@ -663,14 +554,91 @@ streams:
             type:
               - string
               - 'null'
+          name:
+            type:
+              - string
+              - 'null'
           organization:
             type:
               - string
               - 'null'
-          contactNumber:
+          retailerId:
+            type:
+              - number
+              - 'null'
+          rewardPoint:
+            type:
+              - number
+              - 'null'
+          taxCode:
             type:
               - string
               - 'null'
+          type:
+            type:
+              - number
+              - 'null'
+          wardName:
+            type:
+              - string
+              - 'null'
+        required:
+          - id
+        type: object
+    retriever:
+      type: SimpleRetriever
+      requester:
+        type: HttpRequester
+        url_base: https://public.kiotapi.com/
+        path: customers
+        http_method: GET
+        request_parameters: {}
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
+        authenticator:
+          type: OAuthAuthenticator
+          scopes:
+            - PublicApi.Access
+          client_id: '{{ config[''client_id''] }}'
+          grant_type: client_credentials
+          client_secret: '{{ config[''client_secret''] }}'
+          refresh_request_body:
+            scope: PublicApi.Access
+            grant_type: client_credentials
+          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
+        error_handler:
+          type: CompositeErrorHandler
+          error_handlers:
+            - type: DefaultErrorHandler
+              backoff_strategies:
+                - type: ExponentialBackoffStrategy
+                  factor: 6
+              response_filters:
+                - type: HttpResponseFilter
+                  action: RETRY
+                  http_codes:
+                    - 429
+        request_body_json: {}
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+      partition_router: []
     transformations:
       - type: AddFields
         fields:
@@ -682,120 +650,90 @@ streams:
     incremental_sync:
       type: DatetimeBasedCursor
       cursor_field: modifiedDate
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
       start_datetime:
         type: MinMaxDatetime
         datetime: '{{ config[''start_date''] }}'
         datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
       start_time_option:
         type: RequestOption
         field_name: lastModifiedFrom
         inject_into: request_parameter
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M%S.%f0'
-  - name: returns
-    type: DeclarativeStream
-    retriever:
-      type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
-      requester:
-        path: returns
-        type: HttpRequester
-        url_base: https://public.kiotapi.com/
-        http_method: GET
-        authenticator:
-          type: OAuthAuthenticator
-          scopes:
-            - PublicApi.Access
-          client_id: '{{ config[''client_id''] }}'
-          grant_type: client_credentials
-          client_secret: '{{ config[''client_secret''] }}'
-          refresh_request_body:
-            scope: PublicApi.Access
-            grant_type: client_credentials
-          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
-        error_handler:
-          type: CompositeErrorHandler
-          error_handlers:
-            - type: DefaultErrorHandler
-              response_filters:
-                - type: HttpResponseFilter
-                  action: IGNORE
-                  http_codes:
-                    - 429
-              backoff_strategies:
-                - type: ExponentialBackoffStrategy
-                  factor: 6
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
-        request_body_json: {}
-        request_parameters:
-          SaleChannel: 'true'
-          includePayment: 'true'
-          includeInvoiceDelivery: 'true'
-      record_selector:
-        type: RecordSelector
-        extractor:
-          type: DpathExtractor
-          field_path:
-            - data
-      partition_router: []
+  - type: DeclarativeStream
+    name: returns
     primary_key:
       - id
     schema_loader:
       type: InlineSchemaLoader
       schema:
-        type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - modifiedDate
         properties:
-          id:
-            type: number
-          code:
-            type:
-              - string
-              - 'null'
-          status:
-            type:
-              - number
-              - 'null'
           branchId:
             type:
               - number
               - 'null'
-          payments:
+          branchName:
             type:
-              - array
+              - string
               - 'null'
+          code:
+            type:
+              - string
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          customerCode:
+            type:
+              - string
+              - 'null'
+          customerId:
+            type:
+              - number
+              - 'null'
+          customerName:
+            type:
+              - string
+              - 'null'
+          description:
+            type:
+              - string
+              - 'null'
+          id:
+            type: number
+          invoiceId:
+            type:
+              - number
+              - 'null'
+          modifiedDate:
+            type: string
+          payments:
             items:
-              type:
-                - object
-                - 'null'
               properties:
-                id:
+                accountId:
                   type:
                     - number
+                    - 'null'
+                amount:
+                  type:
+                    - number
+                    - 'null'
+                bankAccount:
+                  type:
+                    - string
                     - 'null'
                 code:
                   type:
                     - string
                     - 'null'
-                amount:
+                description:
+                  type:
+                    - string
+                    - 'null'
+                id:
                   type:
                     - number
                     - 'null'
@@ -807,39 +745,21 @@ streams:
                   type:
                     - number
                     - 'null'
-                accountId:
+                statusValue:
                   type:
-                    - number
+                    - string
                     - 'null'
                 transDate:
                   type:
                     - string
                     - 'null'
-                bankAccount:
-                  type:
-                    - string
-                    - 'null'
-                description:
-                  type:
-                    - string
-                    - 'null'
-                statusValue:
-                  type:
-                    - string
-                    - 'null'
-          invoiceId:
+              type:
+                - object
+                - 'null'
             type:
-              - number
+              - array
               - 'null'
-          returnFee:
-            type:
-              - number
-              - 'null'
-          branchName:
-            type:
-              - string
-              - 'null'
-          customerId:
+          receivedById:
             type:
               - number
               - 'null'
@@ -847,52 +767,8 @@ streams:
             type:
               - string
               - 'null'
-          soldByName:
-            type:
-              - string
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          description:
-            type:
-              - string
-              - 'null'
-          returnTotal:
-            type:
-              - number
-              - 'null'
-          statusValue:
-            type:
-              - string
-              - 'null'
-          customerCode:
-            type:
-              - string
-              - 'null'
-          customerName:
-            type:
-              - string
-              - 'null'
-          modifiedDate:
-            type: string
-          receivedById:
-            type:
-              - number
-              - 'null'
-          totalPayment:
-            type:
-              - number
-              - 'null'
           returnDetails:
-            type:
-              - array
-              - 'null'
             items:
-              type:
-                - object
-                - 'null'
               properties:
                 note:
                   type:
@@ -902,6 +778,18 @@ streams:
                   type:
                     - number
                     - 'null'
+                productCode:
+                  type:
+                    - string
+                    - 'null'
+                productId:
+                  type:
+                    - number
+                    - 'null'
+                productName:
+                  type:
+                    - string
+                    - 'null'
                 quantity:
                   type:
                     - number
@@ -910,76 +798,57 @@ streams:
                   type:
                     - number
                     - 'null'
-                productId:
-                  type:
-                    - number
-                    - 'null'
-                productCode:
-                  type:
-                    - string
-                    - 'null'
-                productName:
-                  type:
-                    - string
-                    - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
           returnDiscount:
             type:
               - number
               - 'null'
-    transformations:
-      - type: AddFields
-        fields:
-          - path:
-              - modifiedDate
-            value: >-
-              {{record['modifiedDate'] if record['modifiedDate'] else
-              record['createdDate']}}
-    incremental_sync:
-      type: DatetimeBasedCursor
-      cursor_field: modifiedDate
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      start_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ config[''start_date''] }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
-      end_time_option:
-        type: RequestOption
-        field_name: toDate
-        inject_into: request_parameter
-      lookback_window: P1D
-      start_time_option:
-        type: RequestOption
-        field_name: lastModifiedFrom
-        inject_into: request_parameter
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M:%S.%f0'
-  - name: purchase orders
-    type: DeclarativeStream
+          returnFee:
+            type:
+              - number
+              - 'null'
+          returnTotal:
+            type:
+              - number
+              - 'null'
+          soldByName:
+            type:
+              - string
+              - 'null'
+          status:
+            type:
+              - number
+              - 'null'
+          statusValue:
+            type:
+              - string
+              - 'null'
+          totalPayment:
+            type:
+              - number
+              - 'null'
+        required:
+          - id
+          - modifiedDate
+        type: object
     retriever:
       type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
       requester:
-        path: purchaseorders
         type: HttpRequester
         url_base: https://public.kiotapi.com/
+        path: returns
         http_method: GET
+        request_parameters:
+          SaleChannel: 'true'
+          includePayment: 'true'
+          includeInvoiceDelivery: 'true'
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
         authenticator:
           type: OAuthAuthenticator
           scopes:
@@ -995,55 +864,77 @@ streams:
           type: CompositeErrorHandler
           error_handlers:
             - type: DefaultErrorHandler
-              response_filters:
-                - type: HttpResponseFilter
-                  action: RETRY
-                  http_codes:
-                    - 429
               backoff_strategies:
                 - type: ExponentialBackoffStrategy
                   factor: 6
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
+              response_filters:
+                - type: HttpResponseFilter
+                  action: IGNORE
+                  http_codes:
+                    - 429
         request_body_json: {}
-        request_parameters: {}
       record_selector:
         type: RecordSelector
         extractor:
           type: DpathExtractor
           field_path:
             - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
       partition_router: []
+    transformations:
+      - type: AddFields
+        fields:
+          - path:
+              - modifiedDate
+            value: >-
+              {{record['modifiedDate'] if record['modifiedDate'] else
+              record['createdDate']}}
+    incremental_sync:
+      type: DatetimeBasedCursor
+      cursor_field: modifiedDate
+      lookback_window: P1D
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
+      start_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ config[''start_date''] }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      start_time_option:
+        type: RequestOption
+        field_name: lastModifiedFrom
+        inject_into: request_parameter
+      end_time_option:
+        type: RequestOption
+        field_name: toDate
+        inject_into: request_parameter
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+  - type: DeclarativeStream
+    name: purchase orders
     primary_key:
       - id
     schema_loader:
       type: InlineSchemaLoader
       schema:
-        type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - purchaseDate
         properties:
-          id:
-            type: number
-          code:
-            type:
-              - string
-              - 'null'
-          total:
-            type:
-              - number
-              - 'null'
-          status:
-            type:
-              - number
-              - 'null'
           branchId:
-            type:
-              - number
-              - 'null'
-          discount:
             type:
               - number
               - 'null'
@@ -1051,13 +942,9 @@ streams:
             type:
               - string
               - 'null'
-          retailerId:
+          code:
             type:
-              - number
-              - 'null'
-          supplierId:
-            type:
-              - number
+              - string
               - 'null'
           createdDate:
             type:
@@ -1067,25 +954,7 @@ streams:
             type:
               - string
               - 'null'
-          purchaseById:
-            type:
-              - number
-              - 'null'
-          purchaseDate:
-            type: string
-          purchaseName:
-            type:
-              - string
-              - 'null'
-          supplierCode:
-            type:
-              - string
-              - 'null'
-          supplierName:
-            type:
-              - string
-              - 'null'
-          totalPayment:
+          discount:
             type:
               - number
               - 'null'
@@ -1101,28 +970,30 @@ streams:
             type:
               - number
               - 'null'
-          purchaseOrderDetails:
+          id:
+            type: number
+          purchaseById:
             type:
-              - array
+              - number
               - 'null'
+          purchaseDate:
+            type: string
+          purchaseName:
+            type:
+              - string
+              - 'null'
+          purchaseOrderDetails:
             items:
-              type:
-                - object
-                - 'null'
               properties:
-                price:
-                  type:
-                    - number
-                    - 'null'
                 discount:
                   type:
                     - number
                     - 'null'
-                quantity:
+                discountRatio:
                   type:
                     - number
                     - 'null'
-                productId:
+                price:
                   type:
                     - number
                     - 'null'
@@ -1130,14 +1001,111 @@ streams:
                   type:
                     - string
                     - 'null'
+                productId:
+                  type:
+                    - number
+                    - 'null'
                 productName:
                   type:
                     - string
                     - 'null'
-                discountRatio:
+                quantity:
                   type:
                     - number
                     - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
+          retailerId:
+            type:
+              - number
+              - 'null'
+          status:
+            type:
+              - number
+              - 'null'
+          supplierCode:
+            type:
+              - string
+              - 'null'
+          supplierId:
+            type:
+              - number
+              - 'null'
+          supplierName:
+            type:
+              - string
+              - 'null'
+          total:
+            type:
+              - number
+              - 'null'
+          totalPayment:
+            type:
+              - number
+              - 'null'
+        required:
+          - id
+          - purchaseDate
+        type: object
+    retriever:
+      type: SimpleRetriever
+      requester:
+        type: HttpRequester
+        url_base: https://public.kiotapi.com/
+        path: purchaseorders
+        http_method: GET
+        request_parameters: {}
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
+        authenticator:
+          type: OAuthAuthenticator
+          scopes:
+            - PublicApi.Access
+          client_id: '{{ config[''client_id''] }}'
+          grant_type: client_credentials
+          client_secret: '{{ config[''client_secret''] }}'
+          refresh_request_body:
+            scope: PublicApi.Access
+            grant_type: client_credentials
+          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
+        error_handler:
+          type: CompositeErrorHandler
+          error_handlers:
+            - type: DefaultErrorHandler
+              backoff_strategies:
+                - type: ExponentialBackoffStrategy
+                  factor: 6
+              response_filters:
+                - type: HttpResponseFilter
+                  action: RETRY
+                  http_codes:
+                    - 429
+        request_body_json: {}
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
+      partition_router: []
     transformations:
       - type: AddFields
         fields:
@@ -1149,49 +1117,182 @@ streams:
     incremental_sync:
       type: DatetimeBasedCursor
       cursor_field: purchaseDate
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      lookback_window: P1D
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
       start_datetime:
         type: MinMaxDatetime
         datetime: '{{ config[''start_date''] }}'
         datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
-      end_time_option:
-        type: RequestOption
-        field_name: toPurchaseDate
-        inject_into: request_parameter
-      lookback_window: P1D
       start_time_option:
         type: RequestOption
         field_name: fromPurchaseDate
         inject_into: request_parameter
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M:%S.%f0'
-  - name: products
-    type: DeclarativeStream
+      end_time_option:
+        type: RequestOption
+        field_name: toPurchaseDate
+        inject_into: request_parameter
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+  - type: DeclarativeStream
+    name: products
+    primary_key:
+      - id
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        $schema: http://json-schema.org/schema#
+        properties:
+          allowsSale:
+            type:
+              - boolean
+              - 'null'
+          barCode:
+            type:
+              - string
+              - 'null'
+          basePrice:
+            type:
+              - number
+              - 'null'
+          categoryId:
+            type:
+              - number
+              - 'null'
+          categoryName:
+            type:
+              - string
+              - 'null'
+          code:
+            type:
+              - string
+              - 'null'
+          conversionValue:
+            type:
+              - number
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          fullName:
+            type:
+              - string
+              - 'null'
+          hasVariants:
+            type:
+              - boolean
+              - 'null'
+          id:
+            type: number
+          inventories:
+            items:
+              properties:
+                actualReserved:
+                  type:
+                    - number
+                    - 'null'
+                branchId:
+                  type:
+                    - number
+                    - 'null'
+                branchName:
+                  type:
+                    - string
+                    - 'null'
+                cost:
+                  type:
+                    - number
+                    - 'null'
+                isActive:
+                  type:
+                    - boolean
+                    - 'null'
+                maxQuantity:
+                  type:
+                    - number
+                    - 'null'
+                minQuantity:
+                  type:
+                    - number
+                    - 'null'
+                onHand:
+                  type:
+                    - number
+                    - 'null'
+                productCode:
+                  type:
+                    - string
+                    - 'null'
+                productId:
+                  type:
+                    - number
+                    - 'null'
+                productName:
+                  type:
+                    - string
+                    - 'null'
+                reserved:
+                  type:
+                    - number
+                    - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
+          isActive:
+            type:
+              - boolean
+              - 'null'
+          isBatchExpireControl:
+            type:
+              - boolean
+              - 'null'
+          isLotSerialControl:
+            type:
+              - boolean
+              - 'null'
+          modifiedDate:
+            type: string
+          name:
+            type:
+              - string
+              - 'null'
+          retailerId:
+            type:
+              - number
+              - 'null'
+          type:
+            type:
+              - number
+              - 'null'
+          weight:
+            type:
+              - number
+              - 'null'
+        required:
+          - id
+          - modifiedDate
+        type: object
     retriever:
       type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
       requester:
-        path: products
         type: HttpRequester
         url_base: https://public.kiotapi.com/
+        path: products
         http_method: GET
+        request_parameters:
+          IncludeSerials: 'true'
+          includeInventory: 'true'
+          includePricebook: 'true'
+          IncludeBatchExpires: 'true'
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
         authenticator:
           type: OAuthAuthenticator
           scopes:
@@ -1207,169 +1308,36 @@ streams:
           type: CompositeErrorHandler
           error_handlers:
             - type: DefaultErrorHandler
+              backoff_strategies:
+                - type: ExponentialBackoffStrategy
+                  factor: 5
               response_filters:
                 - type: HttpResponseFilter
                   action: RETRY
                   http_codes:
                     - 429
-              backoff_strategies:
-                - type: ExponentialBackoffStrategy
-                  factor: 5
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
         request_body_json: {}
-        request_parameters:
-          IncludeSerials: 'true'
-          includeInventory: 'true'
-          includePricebook: 'true'
-          IncludeBatchExpires: 'true'
       record_selector:
         type: RecordSelector
         extractor:
           type: DpathExtractor
           field_path:
             - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
       partition_router: []
-    primary_key:
-      - id
-    schema_loader:
-      type: InlineSchemaLoader
-      schema:
-        type: object
-        $schema: http://json-schema.org/schema#
-        required:
-          - id
-          - modifiedDate
-        properties:
-          id:
-            type: number
-          code:
-            type:
-              - string
-              - 'null'
-          name:
-            type:
-              - string
-              - 'null'
-          type:
-            type:
-              - number
-              - 'null'
-          weight:
-            type:
-              - number
-              - 'null'
-          barCode:
-            type:
-              - string
-              - 'null'
-          fullName:
-            type:
-              - string
-              - 'null'
-          isActive:
-            type:
-              - boolean
-              - 'null'
-          basePrice:
-            type:
-              - number
-              - 'null'
-          allowsSale:
-            type:
-              - boolean
-              - 'null'
-          categoryId:
-            type:
-              - number
-              - 'null'
-          retailerId:
-            type:
-              - number
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          hasVariants:
-            type:
-              - boolean
-              - 'null'
-          inventories:
-            type:
-              - array
-              - 'null'
-            items:
-              type:
-                - object
-                - 'null'
-              properties:
-                cost:
-                  type:
-                    - number
-                    - 'null'
-                onHand:
-                  type:
-                    - number
-                    - 'null'
-                branchId:
-                  type:
-                    - number
-                    - 'null'
-                isActive:
-                  type:
-                    - boolean
-                    - 'null'
-                reserved:
-                  type:
-                    - number
-                    - 'null'
-                productId:
-                  type:
-                    - number
-                    - 'null'
-                branchName:
-                  type:
-                    - string
-                    - 'null'
-                maxQuantity:
-                  type:
-                    - number
-                    - 'null'
-                minQuantity:
-                  type:
-                    - number
-                    - 'null'
-                productCode:
-                  type:
-                    - string
-                    - 'null'
-                productName:
-                  type:
-                    - string
-                    - 'null'
-                actualReserved:
-                  type:
-                    - number
-                    - 'null'
-          categoryName:
-            type:
-              - string
-              - 'null'
-          modifiedDate:
-            type: string
-          conversionValue:
-            type:
-              - number
-              - 'null'
-          isLotSerialControl:
-            type:
-              - boolean
-              - 'null'
-          isBatchExpireControl:
-            type:
-              - boolean
-              - 'null'
     transformations:
       - type: AddFields
         fields:
@@ -1381,49 +1349,156 @@ streams:
     incremental_sync:
       type: DatetimeBasedCursor
       cursor_field: modifiedDate
-      end_datetime:
-        type: MinMaxDatetime
-        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
-        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+      lookback_window: P1D
+      cursor_datetime_formats:
+        - '%Y-%m-%dT%H:%M:%S.%f0'
+      datetime_format: '%Y-%m-%d'
       start_datetime:
         type: MinMaxDatetime
         datetime: '{{ config[''start_date''] }}'
         datetime_format: '%Y-%m-%dT%H:%M:%SZ'
-      datetime_format: '%Y-%m-%d'
-      end_time_option:
-        type: RequestOption
-        field_name: toDate
-        inject_into: request_parameter
-      lookback_window: P1D
       start_time_option:
         type: RequestOption
         field_name: lastModifiedFrom
         inject_into: request_parameter
-      cursor_datetime_formats:
-        - '%Y-%m-%dT%H:%M:%S.%f0'
-  - name: categories
-    type: DeclarativeStream
+      end_time_option:
+        type: RequestOption
+        field_name: toDate
+        inject_into: request_parameter
+      end_datetime:
+        type: MinMaxDatetime
+        datetime: '{{ now_utc().strftime(''%Y-%m-%dT%H:%M:%SZ'') }}'
+        datetime_format: '%Y-%m-%dT%H:%M:%SZ'
+  - type: DeclarativeStream
+    name: categories
+    primary_key:
+      - categoryId
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        $schema: http://json-schema.org/schema#
+        properties:
+          categoryId:
+            type: number
+          categoryName:
+            type:
+              - string
+              - 'null'
+          children:
+            items:
+              properties:
+                categoryId:
+                  type:
+                    - number
+                    - 'null'
+                categoryName:
+                  type:
+                    - string
+                    - 'null'
+                children:
+                  items:
+                    properties:
+                      categoryId:
+                        type:
+                          - number
+                          - 'null'
+                      categoryName:
+                        type:
+                          - string
+                          - 'null'
+                      createdDate:
+                        type:
+                          - string
+                          - 'null'
+                      hasChild:
+                        type:
+                          - boolean
+                          - 'null'
+                      modifiedDate:
+                        type:
+                          - string
+                          - 'null'
+                      parentId:
+                        type:
+                          - number
+                          - 'null'
+                      rank:
+                        type:
+                          - number
+                          - 'null'
+                      retailerId:
+                        type:
+                          - number
+                          - 'null'
+                    type:
+                      - object
+                      - 'null'
+                  type:
+                    - array
+                    - 'null'
+                createdDate:
+                  type:
+                    - string
+                    - 'null'
+                hasChild:
+                  type:
+                    - boolean
+                    - 'null'
+                modifiedDate:
+                  type:
+                    - string
+                    - 'null'
+                parentId:
+                  type:
+                    - number
+                    - 'null'
+                rank:
+                  type:
+                    - number
+                    - 'null'
+                retailerId:
+                  type:
+                    - number
+                    - 'null'
+              type:
+                - object
+                - 'null'
+            type:
+              - array
+              - 'null'
+          createdDate:
+            type:
+              - string
+              - 'null'
+          hasChild:
+            type:
+              - boolean
+              - 'null'
+          modifiedDate:
+            type: string
+          rank:
+            type:
+              - number
+              - 'null'
+          retailerId:
+            type:
+              - number
+              - 'null'
+        required:
+          - categoryId
+          - modifiedDate
+        type: object
     retriever:
       type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
       requester:
-        path: categories
         type: HttpRequester
         url_base: https://public.kiotapi.com/
+        path: categories
         http_method: GET
+        request_parameters:
+          hierachicalData: 'true'
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
         authenticator:
           type: OAuthAuthenticator
           scopes:
@@ -1444,135 +1519,28 @@ streams:
                   action: FAIL
                   http_codes:
                     - 429
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
         request_body_json: {}
-        request_parameters:
-          hierachicalData: 'true'
       record_selector:
         type: RecordSelector
         extractor:
           type: DpathExtractor
           field_path:
             - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
       partition_router: []
-    primary_key:
-      - categoryId
-    schema_loader:
-      type: InlineSchemaLoader
-      schema:
-        type: object
-        $schema: http://json-schema.org/schema#
-        required:
-          - categoryId
-          - modifiedDate
-        properties:
-          rank:
-            type:
-              - number
-              - 'null'
-          children:
-            type:
-              - array
-              - 'null'
-            items:
-              type:
-                - object
-                - 'null'
-              properties:
-                rank:
-                  type:
-                    - number
-                    - 'null'
-                children:
-                  type:
-                    - array
-                    - 'null'
-                  items:
-                    type:
-                      - object
-                      - 'null'
-                    properties:
-                      rank:
-                        type:
-                          - number
-                          - 'null'
-                      hasChild:
-                        type:
-                          - boolean
-                          - 'null'
-                      parentId:
-                        type:
-                          - number
-                          - 'null'
-                      categoryId:
-                        type:
-                          - number
-                          - 'null'
-                      retailerId:
-                        type:
-                          - number
-                          - 'null'
-                      createdDate:
-                        type:
-                          - string
-                          - 'null'
-                      categoryName:
-                        type:
-                          - string
-                          - 'null'
-                      modifiedDate:
-                        type:
-                          - string
-                          - 'null'
-                hasChild:
-                  type:
-                    - boolean
-                    - 'null'
-                parentId:
-                  type:
-                    - number
-                    - 'null'
-                categoryId:
-                  type:
-                    - number
-                    - 'null'
-                retailerId:
-                  type:
-                    - number
-                    - 'null'
-                createdDate:
-                  type:
-                    - string
-                    - 'null'
-                categoryName:
-                  type:
-                    - string
-                    - 'null'
-                modifiedDate:
-                  type:
-                    - string
-                    - 'null'
-          hasChild:
-            type:
-              - boolean
-              - 'null'
-          categoryId:
-            type: number
-          retailerId:
-            type:
-              - number
-              - 'null'
-          createdDate:
-            type:
-              - string
-              - 'null'
-          categoryName:
-            type:
-              - string
-              - 'null'
-          modifiedDate:
-            type: string
     transformations:
       - type: AddFields
         fields:
@@ -1581,81 +1549,16 @@ streams:
             value: >-
               {{record['modifiedDate'] if record['modifiedDate'] else
               record['createdDate']}}
-  - name: branches
-    type: DeclarativeStream
-    retriever:
-      type: SimpleRetriever
-      paginator:
-        type: DefaultPaginator
-        page_size_option:
-          type: RequestOption
-          field_name: pageSize
-          inject_into: request_parameter
-        page_token_option:
-          type: RequestOption
-          field_name: currentItem
-          inject_into: request_parameter
-        pagination_strategy:
-          type: OffsetIncrement
-          page_size: 100
-          inject_on_first_request: true
-      requester:
-        path: branches
-        type: HttpRequester
-        url_base: https://public.kiotapi.com/
-        http_method: GET
-        authenticator:
-          type: OAuthAuthenticator
-          scopes:
-            - PublicApi.Access
-          client_id: '{{ config[''client_id''] }}'
-          grant_type: client_credentials
-          client_secret: '{{ config[''client_secret''] }}'
-          refresh_request_body:
-            scope: PublicApi.Access
-            grant_type: client_credentials
-          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
-        error_handler:
-          type: CompositeErrorHandler
-          error_handlers:
-            - type: DefaultErrorHandler
-              response_filters:
-                - type: HttpResponseFilter
-                  action: FAIL
-                  http_codes:
-                    - 429
-        request_headers:
-          Retailer: '{{ config[''retailer''] }}'
-        request_body_json: {}
-        request_parameters: {}
-      record_selector:
-        type: RecordSelector
-        extractor:
-          type: DpathExtractor
-          field_path:
-            - data
-      partition_router: []
+  - type: DeclarativeStream
+    name: branches
     primary_key:
       - id
     schema_loader:
       type: InlineSchemaLoader
       schema:
-        type: object
         $schema: http://json-schema.org/schema#
-        required:
-          - id
         properties:
-          id:
-            type: number
-          email:
-            type:
-              - string
-              - 'null'
           address:
-            type:
-              - string
-              - 'null'
-          wardName:
             type:
               - string
               - 'null'
@@ -1663,14 +1566,20 @@ streams:
             type:
               - string
               - 'null'
-          retailerId:
+          contactNumber:
             type:
-              - number
+              - string
               - 'null'
           createdDate:
             type:
               - string
               - 'null'
+          email:
+            type:
+              - string
+              - 'null'
+          id:
+            type: number
           locationName:
             type:
               - string
@@ -1679,10 +1588,69 @@ streams:
             type:
               - string
               - 'null'
-          contactNumber:
+          retailerId:
+            type:
+              - number
+              - 'null'
+          wardName:
             type:
               - string
               - 'null'
+        required:
+          - id
+        type: object
+    retriever:
+      type: SimpleRetriever
+      requester:
+        type: HttpRequester
+        url_base: https://public.kiotapi.com/
+        path: branches
+        http_method: GET
+        request_parameters: {}
+        request_headers:
+          Retailer: '{{ config[''retailer''] }}'
+        authenticator:
+          type: OAuthAuthenticator
+          scopes:
+            - PublicApi.Access
+          client_id: '{{ config[''client_id''] }}'
+          grant_type: client_credentials
+          client_secret: '{{ config[''client_secret''] }}'
+          refresh_request_body:
+            scope: PublicApi.Access
+            grant_type: client_credentials
+          token_refresh_endpoint: https://id.kiotviet.vn/connect/token
+        error_handler:
+          type: CompositeErrorHandler
+          error_handlers:
+            - type: DefaultErrorHandler
+              response_filters:
+                - type: HttpResponseFilter
+                  action: FAIL
+                  http_codes:
+                    - 429
+        request_body_json: {}
+      record_selector:
+        type: RecordSelector
+        extractor:
+          type: DpathExtractor
+          field_path:
+            - data
+      paginator:
+        type: DefaultPaginator
+        page_token_option:
+          type: RequestOption
+          inject_into: request_parameter
+          field_name: currentItem
+        page_size_option:
+          type: RequestOption
+          field_name: pageSize
+          inject_into: request_parameter
+        pagination_strategy:
+          type: OffsetIncrement
+          page_size: 100
+          inject_on_first_request: true
+      partition_router: []
     transformations:
       - type: AddFields
         fields:
@@ -1691,14 +1659,46 @@ streams:
             value: >-
               {{record['modifiedDate'] if record['modifiedDate'] else
               record['createdDate']}}
-version: 0.73.0
+spec:
+  connection_specification:
+    $schema: http://json-schema.org/draft-07/schema#
+    type: object
+    required:
+      - start_date
+      - client_id
+      - client_secret
+      - retailer
+    properties:
+      start_date:
+        type: string
+        title: Start date
+        format: date-time
+        pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
+        order: 0
+      client_id:
+        type: string
+        title: Client ID
+        airbyte_secret: true
+        order: 1
+      client_secret:
+        type: string
+        title: Client secret
+        airbyte_secret: true
+        order: 2
+      retailer:
+        type: string
+        order: 3
+        title: Retailer
+        airbyte_secret: true
+    additionalProperties: true
+  type: Spec
 metadata:
   autoImportSchema:
-    orders: true
-    returns: true
-    branches: true
     invoices: true
-    products: true
+    orders: true
     customers: true
-    categories: true
+    returns: true
     purchase orders: true
+    products: true
+    categories: true
+    branches: true
